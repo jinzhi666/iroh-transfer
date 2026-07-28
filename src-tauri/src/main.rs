@@ -596,6 +596,33 @@ fn relaunch(app: AppHandle) {
 }
 
 #[tauri::command]
+fn open_file_location(path: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .args(["-R", &path])
+            .spawn()
+            .map_err(|e| format!("打开文件夹失败: {}", e))?;
+    }
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("explorer")
+            .args(["/select,", &path])
+            .spawn()
+            .map_err(|e| format!("打开文件夹失败: {}", e))?;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let dir = std::path::Path::new(&path).parent().unwrap_or(std::path::Path::new("."));
+        std::process::Command::new("xdg-open")
+            .arg(dir)
+            .spawn()
+            .map_err(|e| format!("打开文件夹失败: {}", e))?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
 async fn clear_cache(state: State<'_, AppState>) -> Result<serde_json::Value, String> {    let iroh = {
         let guard = state.iroh_client.lock().map_err(|e| e.to_string())?;
         guard.as_ref()
@@ -650,6 +677,7 @@ fn main() {
             check_download_status,
             clear_cache,
             open_external,
+            open_file_location,
             relaunch
         ])
         .setup(|_app| Ok(()))

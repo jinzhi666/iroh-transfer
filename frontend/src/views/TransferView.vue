@@ -202,6 +202,10 @@
                 :closable="false"
                 style="margin-top: 10px"
               />
+              <div v-if="receiveSuccess && receiveSavePath" class="save-path-row">
+                <el-icon color="#3fb950"><DocumentChecked /></el-icon>
+                <span class="save-path" @click="openFileLocation">{{ receiveSavePath }}</span>
+              </div>
             </template>
           </el-card>
         </el-col>
@@ -232,7 +236,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
-import { UploadFilled, Loading, WarningFilled } from '@element-plus/icons-vue'
+import { UploadFilled, Loading, WarningFilled, DocumentChecked } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { invoke, listen } from '../api/tauri'
 import type { SendFileResult, DownloadProgress } from '../api/tauri'
@@ -278,6 +282,16 @@ const nodeStopping = ref(false)
 const nodeRestarting = ref(false)
 const nodeId = ref('')
 const clearingCache = ref(false)
+
+async function openFileLocation() {
+  if (!receiveSavePath.value) return
+  try {
+    await invoke('open_file_location', { path: receiveSavePath.value })
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
+    ElMessage.error('打开文件夹失败: ' + msg)
+  }
+}
 
 async function clearCache() {
   try {
@@ -327,6 +341,7 @@ function resetReceiveState() {
   progressMsgClass.value = ''
   receiveMsg.value = ''
   receiveSuccess.value = false
+  receiveSavePath.value = ''
   sendResult.value = null
   sendContent.value = ''
   copyBtnText.value = '复制发送内容'
@@ -434,6 +449,7 @@ const progressMsg = ref('')
 const progressMsgClass = ref('')
 const receiveMsg = ref('')
 const receiveSuccess = ref(false)
+const receiveSavePath = ref('')
 
 let parsedNodeId = ''
 let parsedFileSize = 0
@@ -476,6 +492,7 @@ function onDownloadProgress(info: DownloadProgress) {
     receiveMsg.value = progressMsg.value
     receiveSuccess.value = true
     receiving.value = false
+    receiveSavePath.value = info.save_path || ''
     history.add('接收', saveFilename.value.trim(), '成功')
     setTimeout(() => { showProgress.value = false }, 3000)
   } else if (info.status === 'failed') {
@@ -733,9 +750,24 @@ async function receiveFile() {
 .save-path-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  font-size: 13px;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: rgba(63, 185, 80, 0.08);
+  border-radius: 4px;
+  font-size: 12px;
+  color: #c9d1d9;
+}
+
+.save-path {
+  cursor: pointer;
+  color: #58a6ff;
+  font-family: monospace;
+  word-break: break-all;
+}
+
+.save-path:hover {
+  text-decoration: underline;
 }
 
 .save-input {

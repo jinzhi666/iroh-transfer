@@ -60,7 +60,7 @@ import { invoke } from '../api/tauri'
 
 const router = useRouter()
 const appIcon = '/icon.png'
-const version = ref('0.2.0')
+const version = ref('0.2.1')
 const checking = ref(false)
 const updating = ref(false)
 const hasUpdate = ref(false)
