@@ -1,0 +1,18 @@
+[package]
+name = "iroh-transfer"
+version = "0.2.0"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["devtools"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rfd = "0.15"
+tokio = { version = "1.52.3", features = ["rt", "sync", "time"] }
+dirs = "6.0.0"
+iroh = "0.28"
+futures-lite = "2"
+tauri-plugin-updater = "2"

@@ -1,0 +1,28 @@
+{
+  "name": "iroh-transfer",
+  "version": "0.2.0",
+  "description": "P2P file transfer powered by iroh",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "sharp": "^0.35.1"
+  },
+  "main": "gen-icon.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.11.0",
+    "detect-libc": "^2.1.2",
+    "semver": "^7.8.4",
+    "tslib": "^2.8.1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
