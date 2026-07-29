@@ -102,21 +102,34 @@ async function checkUpdate() {
 async function downloadAndInstall() {
   updating.value = true
   updateProgress.value = 0
+  let downloaded = 0
+  let total = 0
   try {
     const update = await check()
     if (!update) {
       ElMessage.info('没有可用的更新')
+      updating.value = false
       return
     }
+    updateStatus.value = '正在下载更新...'
+    updateStatusClass.value = ''
     await update.downloadAndInstall((event) => {
       if (event.event === 'Started') {
+        // contentLength 可能为空（服务器未返回 Content-Length）
+        total = event.data.contentLength ?? 0
+        downloaded = 0
         updateProgress.value = 0
       } else if (event.event === 'Progress') {
-        updateProgress.value = Math.min(updateProgress.value + 5, 99)
+        downloaded += event.data.chunkLength
+        if (total > 0) {
+          // 真实进度：已下载字节 / 总字节
+          updateProgress.value = Math.min(Math.floor((downloaded / total) * 100), 99)
+        }
       } else if (event.event === 'Finished') {
         updateProgress.value = 100
       }
-    })
+    }, { timeout: 600000 })
+    updateProgress.value = 100
     updateStatus.value = '更新完成，即将重启...'
     updateStatusClass.value = 'success'
     await invoke('relaunch')
