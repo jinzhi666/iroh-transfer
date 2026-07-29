@@ -78,22 +78,11 @@ async fn start_node(state: State<'_, AppState>) -> Result<String, String> {
         .map_err(|e| format!("创建数据目录失败: {}", e))?;
 
     // 用 Builder 创建持久化 iroh 节点
-    // 若 blobs 数据库损坏导致加载失败，删除 blobs 目录后重建（节点身份保存在 data_dir 其他位置，不受影响）
-    let builder = match Node::<FsStore>::persistent(&data_dir).await {
-        Ok(b) => b,
-        Err(e) => {
-            let err_msg = format!("{}", e);
-            if err_msg.contains("blobs database") || err_msg.contains("Failed to load blobs") {
-                eprintln!("[WARN] blobs 数据库加载失败，删除 blobs 目录后重建: {}", err_msg);
-                let _ = std::fs::remove_dir_all(data_dir.join("blobs"));
-                Node::<FsStore>::persistent(&data_dir)
-                    .await
-                    .map_err(|e2| format!("重建iroh节点失败: {}", e2))?
-            } else {
-                return Err(format!("创建iroh节点失败: {}", e));
-            }
-        }
-    };
+    // 注：多开实例会因共享 data_dir 的锁冲突而失败，已在 main() 用 single-instance 插件禁止多开；
+    // 若 blobs 数据库真的损坏，可用界面上的「清理缓存」按钮手动重建，这里不再自动删除以免误删正常数据。
+    let builder = Node::<FsStore>::persistent(&data_dir)
+        .await
+        .map_err(|e| format!("创建iroh节点失败: {}", e))?;
 
     let builder = match builder.enable_rpc_with_addr("127.0.0.1:0".parse().unwrap()).await {
         Ok(b) => b,
@@ -672,6 +661,14 @@ async fn clear_cache(state: State<'_, AppState>) -> Result<serde_json::Value, St
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            // 已有一个实例在运行：聚焦到已有窗口，而不是再启动一个冲突的 iroh 节点
+            if let Some(win) = app.get_webview_window("main") {
+                let _ = win.unminimize();
+                let _ = win.show();
+                let _ = win.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AppState {
             node: Mutex::new(None),
