@@ -204,7 +204,7 @@
               />
               <div v-if="receiveSuccess && receiveSavePath" class="save-path-row">
                 <el-icon color="#3fb950"><DocumentChecked /></el-icon>
-                <span class="save-path" @click="openFileLocation">{{ receiveSavePath }}</span>
+                <span class="save-path" @click="openFileLocation">{{ displaySavePath }}</span>
               </div>
             </template>
           </el-card>
@@ -283,10 +283,20 @@ const nodeRestarting = ref(false)
 const nodeId = ref('')
 const clearingCache = ref(false)
 
+function normalizePath(p: string): string {
+  // Windows 路径统一用反斜杠显示和传参
+  if (/^[A-Za-z]:[\\/]/.test(p)) {
+    return p.replace(/\//g, '\\')
+  }
+  return p
+}
+
+const displaySavePath = computed(() => receiveSavePath.value ? normalizePath(receiveSavePath.value) : '')
+
 async function openFileLocation() {
   if (!receiveSavePath.value) return
   try {
-    await invoke('open_file_location', { path: receiveSavePath.value })
+    await invoke('open_file_location', { path: normalizePath(receiveSavePath.value) })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e)
     ElMessage.error('打开文件夹失败: ' + msg)
@@ -487,12 +497,12 @@ function onDownloadProgress(info: DownloadProgress) {
   } else if (info.status === 'completed') {
     progressPercent.value = 100
     progressStatus.value = 'success'
-    progressMsg.value = '✅ 文件已保存到: ' + (info.save_path || 'Downloads')
+    progressMsg.value = '✅ 文件已保存到: ' + normalizePath(info.save_path || 'Downloads')
     progressMsgClass.value = 'success'
     receiveMsg.value = progressMsg.value
     receiveSuccess.value = true
     receiving.value = false
-    receiveSavePath.value = info.save_path || ''
+    receiveSavePath.value = normalizePath(info.save_path || '')
     history.add('接收', saveFilename.value.trim(), '成功')
     setTimeout(() => { showProgress.value = false }, 3000)
   } else if (info.status === 'failed') {
