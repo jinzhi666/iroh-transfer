@@ -16,7 +16,7 @@ jobs:
         include:
           - platform: macos-14       # Apple Silicon (arm64) 原生构建
             args: '--target aarch64-apple-darwin'
-          - platform: macos-14-x64   # Intel (x86_64) 原生构建 dmg，避免在 ARM 上交叉编译 dmg 失败
+          - platform: macos-14       # Intel (x86_64) 在 ARM 上交叉编译，避免 Intel runner 排队
             args: '--target x86_64-apple-darwin'
           - platform: ubuntu-22.04   # Linux (仅 deb)
             args: '--bundles deb'
@@ -67,3 +67,4 @@ jobs:
           prerelease: false
           args: ${{ matrix.args }}
           includeUpdaterJson: true
+          retryAttempts: 3
