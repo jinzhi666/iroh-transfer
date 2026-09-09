@@ -37,7 +37,11 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.args | regexMatch('--target (\S+)') && regexExtract(matrix.args, '--target (\S+)', 1) || '' }}
+          targets: |
+            ${{ contains(matrix.args, 'aarch64-apple-darwin') && 'aarch64-apple-darwin' || '' }}
+            ${{ contains(matrix.args, 'x86_64-apple-darwin') && 'x86_64-apple-darwin' || '' }}
+            ${{ contains(matrix.args, 'x86_64-unknown-linux-gnu') && 'x86_64-unknown-linux-gnu' || '' }}
+            ${{ contains(matrix.args, 'aarch64-unknown-linux-gnu') && 'aarch64-unknown-linux-gnu' || '' }}
 
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
