@@ -1,4 +1,5 @@
 name: Release
+
 # 推送 v* 格式的 tag 时触发自动打包并发布 GitHub Release
 on:
   push:
@@ -6,6 +7,7 @@ on:
       - 'v*'
   # 支持手动触发（用于测试打包流程，不发布 Release）
   workflow_dispatch:
+
 jobs:
   build:
     strategy:
@@ -14,47 +16,42 @@ jobs:
         include:
           - platform: macos-14       # Apple Silicon (arm64) 原生构建
             args: '--target aarch64-apple-darwin'
+            target: 'aarch64-apple-darwin'
           - platform: macos-14       # Intel (x86_64) 在 ARM 上交叉编译，避免 Intel runner 排队
             args: '--target x86_64-apple-darwin'
-          - platform: ubuntu-22.04   # Linux amd64 deb
-            args: '--target x86_64-unknown-linux-gnu --bundles deb'
-          - platform: ubuntu-22.04   # Linux aarch64 deb（新增）
-            args: '--target aarch64-unknown-linux-gnu --bundles deb'
+            target: 'x86_64-apple-darwin'
+          - platform: ubuntu-22.04   # Linux x86_64 (仅 deb)
+            args: '--bundles deb'
+            target: 'x86_64-unknown-linux-gnu'
+          - platform: ubuntu-24.04-arm # Linux ARM64 (仅 deb)
+            args: '--bundles deb'
+            target: 'aarch64-unknown-linux-gnu'
           - platform: windows-latest # Windows
             args: ''
+            target: 'x86_64-pc-windows-msvc'
+
     runs-on: ${{ matrix.platform }}
     permissions:
       contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Install Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: |
-            ${{ contains(matrix.args, 'aarch64-apple-darwin') && 'aarch64-apple-darwin' || '' }}
-            ${{ contains(matrix.args, 'x86_64-apple-darwin') && 'x86_64-apple-darwin' || '' }}
-            ${{ contains(matrix.args, 'x86_64-unknown-linux-gnu') && 'x86_64-unknown-linux-gnu' || '' }}
-            ${{ contains(matrix.args, 'aarch64-unknown-linux-gnu') && 'aarch64-unknown-linux-gnu' || '' }}
+          targets: ${{ matrix.target }}
 
       - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-22.04'
+        if: startsWith(matrix.platform, 'ubuntu')
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev gcc-aarch64-linux-gnu
-
-      - name: Configure aarch64-linux linker
-        if: contains(matrix.args, 'aarch64-unknown-linux-gnu')
-        run: |
-          mkdir -p ~/.cargo
-          echo "[target.aarch64-unknown-linux-gnu]" >> ~/.cargo/config.toml
-          echo "linker = \"aarch64-linux-gnu-gcc\"" >> ~/.cargo/config.toml
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
 
       - name: Install frontend dependencies
         run: |
